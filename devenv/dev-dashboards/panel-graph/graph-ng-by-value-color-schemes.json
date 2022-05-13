@@ -3,7 +3,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": "-- Grafana --",
+        "datasource": {
+          "type": "datasource",
+          "uid": "grafana"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -19,10 +22,17 @@
     ]
   },
   "editable": true,
+  "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 72,
   "links": [],
+  "liveNow": false,
   "panels": [
     {
+      "datasource": {
+        "type": "testdata",
+        "uid": "3fuUBUNGz"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -110,6 +120,10 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "testdata",
+        "uid": "3fuUBUNGz"
+      },
       "description": "",
       "fieldConfig": {
         "defaults": {
@@ -197,6 +211,10 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "testdata",
+        "uid": "3fuUBUNGz"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -372,6 +390,10 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "testdata",
+        "uid": "3fuUBUNGz"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -742,6 +764,10 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "testdata",
+        "uid": "3fuUBUNGz"
+      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -846,7 +872,7 @@
     }
   ],
   "refresh": false,
-  "schemaVersion": 33,
+  "schemaVersion": 36,
   "style": "dark",
   "tags": [
     "gdev",
@@ -864,5 +890,6 @@
   "timezone": "",
   "title": "Panel Tests - Graph NG - By value color schemes",
   "uid": "aBXrJ0R7z",
-  "version": 11
+  "version": 6,
+  "weekStart": ""
 }
