@@ -7,6 +7,12 @@ import (
 
 	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/grafana/grafana/pkg/models"
+	acmock "github.com/grafana/grafana/pkg/services/accesscontrol/mock"
+	datasources "github.com/grafana/grafana/pkg/services/datasources/service"
+	"github.com/grafana/grafana/pkg/services/featuremgmt"
+	"github.com/grafana/grafana/pkg/services/secrets/fakes"
+	"github.com/grafana/grafana/pkg/services/secrets/kvstore"
+	secretsManager "github.com/grafana/grafana/pkg/services/secrets/manager"
 	"github.com/grafana/grafana/pkg/util"
 
 	"github.com/stretchr/testify/require"
@@ -29,9 +35,13 @@ var (
 
 func TestDatasourceAsConfig(t *testing.T) {
 	t.Run("when some values missing should apply default on insert", func(t *testing.T) {
+		secretsStore := kvstore.SetupTestService(t)
+		secretsService := secretsManager.SetupTestService(t, fakes.NewFakeSecretsStore())
+		dsService := datasources.ProvideService(nil, secretsService, secretsStore, nil, featuremgmt.WithFeatures(), acmock.New(), acmock.NewPermissionsServicesMock())
+
 		store := &spyStore{}
 		orgStore := &mockOrgStore{ExpectedOrg: &models.Org{Id: 1}}
-		dc := newDatasourceProvisioner(logger, store, orgStore)
+		dc := newDatasourceProvisioner(logger, dsService, orgStore)
 		err := dc.applyChanges(context.Background(), withoutDefaults)
 		if err != nil {
 			t.Fatalf("applyChanges return an error %v", err)
@@ -45,11 +55,15 @@ func TestDatasourceAsConfig(t *testing.T) {
 	})
 
 	t.Run("when some values missing should not change UID when updates", func(t *testing.T) {
+		secretsStore := kvstore.SetupTestService(t)
+		secretsService := secretsManager.SetupTestService(t, fakes.NewFakeSecretsStore())
+		dsService := datasources.ProvideService(nil, secretsService, secretsStore, nil, featuremgmt.WithFeatures(), acmock.New(), acmock.NewPermissionsServicesMock())
+
 		store := &spyStore{
 			items: []*models.DataSource{{Name: "My datasource name", OrgId: 1, Id: 1, Uid: util.GenerateShortUID()}},
 		}
 		orgStore := &mockOrgStore{}
-		dc := newDatasourceProvisioner(logger, store, orgStore)
+		dc := newDatasourceProvisioner(logger, dsService, orgStore)
 		err := dc.applyChanges(context.Background(), withoutDefaults)
 		if err != nil {
 			t.Fatalf("applyChanges return an error %v", err)
@@ -62,9 +76,13 @@ func TestDatasourceAsConfig(t *testing.T) {
 	})
 
 	t.Run("no datasource in database", func(t *testing.T) {
+		secretsStore := kvstore.SetupTestService(t)
+		secretsService := secretsManager.SetupTestService(t, fakes.NewFakeSecretsStore())
+		dsService := datasources.ProvideService(nil, secretsService, secretsStore, nil, featuremgmt.WithFeatures(), acmock.New(), acmock.NewPermissionsServicesMock())
+
 		store := &spyStore{}
 		orgStore := &mockOrgStore{}
-		dc := newDatasourceProvisioner(logger, store, orgStore)
+		dc := newDatasourceProvisioner(logger, dsService, orgStore)
 		err := dc.applyChanges(context.Background(), twoDatasourcesConfig)
 		if err != nil {
 			t.Fatalf("applyChanges return an error %v", err)
@@ -76,9 +94,13 @@ func TestDatasourceAsConfig(t *testing.T) {
 	})
 
 	t.Run("One datasource in database with same name should update one datasource", func(t *testing.T) {
+		secretsStore := kvstore.SetupTestService(t)
+		secretsService := secretsManager.SetupTestService(t, fakes.NewFakeSecretsStore())
+		dsService := datasources.ProvideService(nil, secretsService, secretsStore, nil, featuremgmt.WithFeatures(), acmock.New(), acmock.NewPermissionsServicesMock())
+
 		store := &spyStore{items: []*models.DataSource{{Name: "Graphite", OrgId: 1, Id: 1}}}
 		orgStore := &mockOrgStore{}
-		dc := newDatasourceProvisioner(logger, store, orgStore)
+		dc := newDatasourceProvisioner(logger, dsService, orgStore)
 		err := dc.applyChanges(context.Background(), twoDatasourcesConfig)
 		if err != nil {
 			t.Fatalf("applyChanges return an error %v", err)
@@ -90,17 +112,24 @@ func TestDatasourceAsConfig(t *testing.T) {
 	})
 
 	t.Run("Two datasources with is_default should raise error", func(t *testing.T) {
-		store := &spyStore{}
+		secretsStore := kvstore.SetupTestService(t)
+		secretsService := secretsManager.SetupTestService(t, fakes.NewFakeSecretsStore())
+		dsService := datasources.ProvideService(nil, secretsService, secretsStore, nil, featuremgmt.WithFeatures(), acmock.New(), acmock.NewPermissionsServicesMock())
+
 		orgStore := &mockOrgStore{}
-		dc := newDatasourceProvisioner(logger, store, orgStore)
+		dc := newDatasourceProvisioner(logger, dsService, orgStore)
 		err := dc.applyChanges(context.Background(), doubleDatasourcesConfig)
 		require.Equal(t, err, ErrInvalidConfigToManyDefault)
 	})
 
 	t.Run("Multiple datasources in different organizations with isDefault in each organization should not raise error", func(t *testing.T) {
+		secretsStore := kvstore.SetupTestService(t)
+		secretsService := secretsManager.SetupTestService(t, fakes.NewFakeSecretsStore())
+		dsService := datasources.ProvideService(nil, secretsService, secretsStore, nil, featuremgmt.WithFeatures(), acmock.New(), acmock.NewPermissionsServicesMock())
+
 		store := &spyStore{}
 		orgStore := &mockOrgStore{}
-		dc := newDatasourceProvisioner(logger, store, orgStore)
+		dc := newDatasourceProvisioner(logger, dsService, orgStore)
 		err := dc.applyChanges(context.Background(), multipleOrgsWithDefault)
 		require.NoError(t, err)
 		require.Equal(t, len(store.inserted), 4)
@@ -111,9 +140,13 @@ func TestDatasourceAsConfig(t *testing.T) {
 	})
 
 	t.Run("Remove one datasource should have removed old datasource", func(t *testing.T) {
+		secretsStore := kvstore.SetupTestService(t)
+		secretsService := secretsManager.SetupTestService(t, fakes.NewFakeSecretsStore())
+		dsService := datasources.ProvideService(nil, secretsService, secretsStore, nil, featuremgmt.WithFeatures(), acmock.New(), acmock.NewPermissionsServicesMock())
+
 		store := &spyStore{}
 		orgStore := &mockOrgStore{}
-		dc := newDatasourceProvisioner(logger, store, orgStore)
+		dc := newDatasourceProvisioner(logger, dsService, orgStore)
 		err := dc.applyChanges(context.Background(), deleteOneDatasource)
 		if err != nil {
 			t.Fatalf("applyChanges return an error %v", err)
@@ -127,9 +160,13 @@ func TestDatasourceAsConfig(t *testing.T) {
 	})
 
 	t.Run("Two configured datasource and purge others", func(t *testing.T) {
+		secretsStore := kvstore.SetupTestService(t)
+		secretsService := secretsManager.SetupTestService(t, fakes.NewFakeSecretsStore())
+		dsService := datasources.ProvideService(nil, secretsService, secretsStore, nil, featuremgmt.WithFeatures(), acmock.New(), acmock.NewPermissionsServicesMock())
+
 		store := &spyStore{items: []*models.DataSource{{Name: "old-graphite", OrgId: 1, Id: 1}, {Name: "old-graphite2", OrgId: 1, Id: 2}}}
 		orgStore := &mockOrgStore{}
-		dc := newDatasourceProvisioner(logger, store, orgStore)
+		dc := newDatasourceProvisioner(logger, dsService, orgStore)
 		err := dc.applyChanges(context.Background(), twoDatasourcesConfigPurgeOthers)
 		if err != nil {
 			t.Fatalf("applyChanges return an error %v", err)
@@ -141,9 +178,13 @@ func TestDatasourceAsConfig(t *testing.T) {
 	})
 
 	t.Run("Two configured datasource and purge others = false", func(t *testing.T) {
+		secretsStore := kvstore.SetupTestService(t)
+		secretsService := secretsManager.SetupTestService(t, fakes.NewFakeSecretsStore())
+		dsService := datasources.ProvideService(nil, secretsService, secretsStore, nil, featuremgmt.WithFeatures(), acmock.New(), acmock.NewPermissionsServicesMock())
+
 		store := &spyStore{items: []*models.DataSource{{Name: "Graphite", OrgId: 1, Id: 1}, {Name: "old-graphite2", OrgId: 1, Id: 2}}}
 		orgStore := &mockOrgStore{}
-		dc := newDatasourceProvisioner(logger, store, orgStore)
+		dc := newDatasourceProvisioner(logger, dsService, orgStore)
 		err := dc.applyChanges(context.Background(), twoDatasourcesConfig)
 		if err != nil {
 			t.Fatalf("applyChanges return an error %v", err)
