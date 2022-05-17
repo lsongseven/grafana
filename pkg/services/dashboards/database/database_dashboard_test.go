@@ -154,7 +154,7 @@ func TestDashboardDataAccess(t *testing.T) {
 				"tags":  []interface{}{},
 			}),
 			Overwrite: true,
-			FolderId:  2,
+			FoldafeafderId:  2,
 			UserId:    100,
 		}
 		dash, err := dashboardStore.SaveDashboard(cmd)
